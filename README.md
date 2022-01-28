@@ -1,7 +1,7 @@
-## go-rtsp-webrtc [![Go Reference][1]][2]
+## go-stream-av [![Go Reference][1]][2]
 
-`go-rtsp-webrtc` is an open-source tool that can parse csv files into the db.
+`go-stream-av` is an open-source tool that with set of libraries for building streaming services.
 
-[1]: https://pkg.go.dev/badge/github.com/teocci/go-rtsp-webrtc.svg
-[2]: https://pkg.go.dev/github.com/teocci/go-rtsp-webrtc
-[3]: https://github.com/teocci/go-rtsp-webrtc/releases/tag/v1.0.0
+[1]: https://pkg.go.dev/badge/github.com/teocci/go-stream-av.svg
+[2]: https://pkg.go.dev/github.com/teocci/go-stream-av
+[3]: https://github.com/teocci/go-stream-av/releases/tag/v1.0.0
