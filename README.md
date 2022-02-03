@@ -5,7 +5,9 @@
 ### Publish on Go Package
 
 ```bash
-go list -m github.com/teocci/go-stream-av@latest
+git tag v0.1.0
+git push origin v0.1.0
+go list -m github.com/teocci/go-stream-av@v0.1.0
 ```
 
 [1]: https://pkg.go.dev/badge/github.com/teocci/go-stream-av.svg
