@@ -1,4 +1,4 @@
-// Package av 
+// Package av
 // Defines basic interfaces and data structures of container demux/mux and audio encode/decode.
 // Created by RTT.
 // Author: teocci@yandex.com on 2021-Oct-27
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// Audio sample format.
+// SampleFormat Audio sample format.
 type SampleFormat uint8
 
 const (
@@ -26,8 +26,8 @@ const (
 	U32                           // unsigned 32-bit integer
 )
 
-func (self SampleFormat) BytesPerSample() int {
-	switch self {
+func (sf SampleFormat) BytesPerSample() int {
+	switch sf {
 	case U8, U8P:
 		return 1
 	case S16, S16P:
@@ -41,8 +41,8 @@ func (self SampleFormat) BytesPerSample() int {
 	}
 }
 
-func (self SampleFormat) String() string {
-	switch self {
+func (sf SampleFormat) String() string {
+	switch sf {
 	case U8:
 		return "U8"
 	case S16:
@@ -68,9 +68,9 @@ func (self SampleFormat) String() string {
 	}
 }
 
-// Check if this sample format is in planar.
-func (self SampleFormat) IsPlanar() bool {
-	switch self {
+// IsPlanar checks if this sample format is in planar.
+func (sf SampleFormat) IsPlanar() bool {
+	switch sf {
 	case S16P, S32P, FLTP, DBLP:
 		return true
 	default:
@@ -78,11 +78,11 @@ func (self SampleFormat) IsPlanar() bool {
 	}
 }
 
-// Audio channel layout.
+// ChannelLayout represents an audio channel layout.
 type ChannelLayout uint16
 
-func (self ChannelLayout) String() string {
-	return fmt.Sprintf("%dch", self.Count())
+func (cl ChannelLayout) String() string {
+	return fmt.Sprintf("%dch", cl.Count())
 }
 
 const (
@@ -106,15 +106,15 @@ const (
 	// TODO: add all channel_layout in ffmpeg
 )
 
-func (self ChannelLayout) Count() (n int) {
-	for self != 0 {
+func (cl ChannelLayout) Count() (n int) {
+	for cl != 0 {
 		n++
-		self = (self - 1) & self
+		cl = (cl - 1) & cl
 	}
 	return
 }
 
-// Video/Audio codec type. can be H264/AAC/SPEEX/...
+// CodecType represents a Video/Audio codec type. can be H264/AAC/SPEEX/...
 type CodecType uint32
 
 var (
@@ -136,8 +136,8 @@ var (
 const codecTypeAudioBit = 0x1
 const codecTypeOtherBits = 1
 
-func (self CodecType) String() string {
-	switch self {
+func (ct CodecType) String() string {
+	switch ct {
 	case H264:
 		return "H264"
 	case H265:
@@ -168,21 +168,21 @@ func (self CodecType) String() string {
 	return ""
 }
 
-func (self CodecType) IsAudio() bool {
-	return self&codecTypeAudioBit != 0
+func (ct CodecType) IsAudio() bool {
+	return ct&codecTypeAudioBit != 0
 }
 
-func (self CodecType) IsVideo() bool {
-	return self&codecTypeAudioBit == 0
+func (ct CodecType) IsVideo() bool {
+	return ct&codecTypeAudioBit == 0
 }
 
-// Make a new audio codec type.
+// MakeAudioCodecType creates a new audio codec type.
 func MakeAudioCodecType(base uint32) (c CodecType) {
 	c = CodecType(base)<<codecTypeOtherBits | CodecType(codecTypeAudioBit)
 	return
 }
 
-// Make a new video codec type.
+// MakeVideoCodecType creates a new video codec type.
 func MakeVideoCodecType(base uint32) (c CodecType) {
 	c = CodecType(base) << codecTypeOtherBits
 	return
@@ -231,7 +231,7 @@ type Muxer interface {
 	WriteTrailer() error           // finish writing file, this func can be called only once
 }
 
-// Muxer with Close() method
+// MuxCloser is a Muxer with Close() method
 type MuxCloser interface {
 	Muxer
 	Close() error
@@ -240,10 +240,10 @@ type MuxCloser interface {
 // Demuxer can read compressed audio/video packets from container formats like MP4/FLV/MPEG-TS.
 type Demuxer interface {
 	PacketReader                   // read compressed audio/video packets
-	Streams() ([]CodecData, error) // reads the file header, contains video/audio meta infomations
+	Streams() ([]CodecData, error) // reads the file header, contains video/audio meta information
 }
 
-// Demuxer with Close() method
+// DemuxCloser is a Demuxer with Close() method
 type DemuxCloser interface {
 	Demuxer
 	Close() error
@@ -259,7 +259,7 @@ type Packet struct {
 	Data            []byte        // packet data
 }
 
-// Raw audio frame.
+// AudioFrame represents a raw audio frame.
 type AudioFrame struct {
 	SampleFormat  SampleFormat  // audio sample format, e.g: S16,FLTP,...
 	ChannelLayout ChannelLayout // audio channel layout, e.g: CH_MONO,CH_STEREO,...
@@ -268,33 +268,33 @@ type AudioFrame struct {
 	Data          [][]byte      // data array for planar format len(Data) > 1
 }
 
-func (self AudioFrame) Duration() time.Duration {
-	return time.Second * time.Duration(self.SampleCount) / time.Duration(self.SampleRate)
+func (af AudioFrame) Duration() time.Duration {
+	return time.Second * time.Duration(af.SampleCount) / time.Duration(af.SampleRate)
 }
 
-// Check this audio frame has same format as other audio frame.
-func (self AudioFrame) HasSameFormat(other AudioFrame) bool {
-	if self.SampleRate != other.SampleRate {
+// HasSameFormat checks if an audio frame has same audio format.
+func (af AudioFrame) HasSameFormat(other AudioFrame) bool {
+	if af.SampleRate != other.SampleRate {
 		return false
 	}
-	if self.ChannelLayout != other.ChannelLayout {
+	if af.ChannelLayout != other.ChannelLayout {
 		return false
 	}
-	if self.SampleFormat != other.SampleFormat {
+	if af.SampleFormat != other.SampleFormat {
 		return false
 	}
 	return true
 }
 
-// Split sample audio sample from this frame.
-func (self AudioFrame) Slice(start int, end int) (out AudioFrame) {
+// Slice splits sample audio sample from this frame.
+func (af AudioFrame) Slice(start int, end int) (out AudioFrame) {
 	if start > end {
 		panic(fmt.Sprintf("av: AudioFrame split failed start=%d end=%d invalid", start, end))
 	}
-	out = self
+	out = af
 	out.Data = append([][]byte(nil), out.Data...)
 	out.SampleCount = end - start
-	size := self.SampleFormat.BytesPerSample()
+	size := af.SampleFormat.BytesPerSample()
 	for i := range out.Data {
 		out.Data[i] = out.Data[i][start*size : end*size]
 	}
@@ -302,8 +302,8 @@ func (self AudioFrame) Slice(start int, end int) (out AudioFrame) {
 }
 
 // Concat two audio frames.
-func (self AudioFrame) Concat(in AudioFrame) (out AudioFrame) {
-	out = self
+func (af AudioFrame) Concat(in AudioFrame) (out AudioFrame) {
+	out = af
 	out.Data = append([][]byte(nil), out.Data...)
 	out.SampleCount += in.SampleCount
 	for i := range out.Data {
@@ -313,10 +313,10 @@ func (self AudioFrame) Concat(in AudioFrame) (out AudioFrame) {
 }
 
 // AudioEncoder can encode raw audio frame into compressed audio packets.
-// cgo/ffmpeg inplements AudioEncoder, using ffmpeg.NewAudioEncoder to create it.
+// cgo/ffmpeg implements AudioEncoder, using ffmpeg.NewAudioEncoder to create it.
 type AudioEncoder interface {
 	CodecData() (AudioCodecData, error)   // encoder's codec data can put into container
-	Encode(AudioFrame) ([][]byte, error)  // encode raw audio frame into compressed pakcet(s)
+	Encode(AudioFrame) ([][]byte, error)  // encode raw audio frame into compressed packet(s)
 	Close()                               // close encoder, free cgo contexts
 	SetSampleRate(int) error              // set encoder sample rate
 	SetChannelLayout(ChannelLayout) error // set encoder channel layout
