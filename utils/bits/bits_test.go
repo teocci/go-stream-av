@@ -10,24 +10,20 @@ import (
 )
 
 func TestBits(t *testing.T) {
-	rdata := []byte{0xf3, 0xb3, 0x45, 0x60}
-	rbuf := bytes.NewReader(rdata[:])
-	r := &Reader{R: rbuf}
+	rData := []byte{0xf3, 0xb3, 0x45, 0x60}
+	rBuf := bytes.NewReader(rData[:])
+	r := &Reader{R: rBuf}
 	var u32 uint
 	if u32, _ = r.ReadBits(4); u32 != 0xf {
-		t.Logf("%d\n", u32)
 		t.FailNow()
 	}
 	if u32, _ = r.ReadBits(4); u32 != 0x3 {
-		t.Logf("%d\n", u32)
 		t.FailNow()
 	}
 	if u32, _ = r.ReadBits(2); u32 != 0x2 {
-		t.Logf("%d\n", u32)
 		t.FailNow()
 	}
 	if u32, _ = r.ReadBits(2); u32 != 0x3 {
-		t.Logf("%d\n", u32)
 		t.FailNow()
 	}
 	b := make([]byte, 2)
@@ -35,8 +31,8 @@ func TestBits(t *testing.T) {
 		t.FailNow()
 	}
 
-	wbuf := &bytes.Buffer{}
-	w := &Writer{W: wbuf}
+	wBuf := &bytes.Buffer{}
+	w := &Writer{W: wBuf}
 	_ = w.WriteBits(0xf, 4)
 	_ = w.WriteBits(0x3, 4)
 	_ = w.WriteBits(0x2, 2)
@@ -46,8 +42,8 @@ func TestBits(t *testing.T) {
 		t.FailNow()
 	}
 	_ = w.FlushBits()
-	wdata := wbuf.Bytes()
-	if wdata[0] != 0xf3 || wdata[1] != 0xb3 || wdata[2] != 0x45 || wdata[3] != 0x60 {
+	wData := wBuf.Bytes()
+	if wData[0] != 0xf3 || wData[1] != 0xb3 || wData[2] != 0x45 || wData[3] != 0x60 {
 		t.FailNow()
 	}
 

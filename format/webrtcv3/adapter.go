@@ -46,6 +46,8 @@ type Options struct {
 	ICEUsername string
 	// ICECredential is an optional credential (i.e., password) for authenticating with the given ICEServers
 	ICECredential string
+	// ICECandidates sets a list of external IP addresses of 1:1
+	ICECandidates []string
 	// PortMin is an optional minimum (inclusive) ephemeral UDP port range for the ICEServers connections
 	PortMin uint16
 	// PortMin is an optional maximum (inclusive) ephemeral UDP port range for the ICEServers connections
@@ -79,6 +81,10 @@ func (element *Muxer) NewPeerConnection(configuration webrtc.Configuration) (*we
 	if element.Options.PortMin > 0 && element.Options.PortMax > 0 && element.Options.PortMax > element.Options.PortMin {
 		s.SetEphemeralUDPPortRange(element.Options.PortMin, element.Options.PortMax)
 		log.Println("Set UDP ports to", element.Options.PortMin, "..", element.Options.PortMax)
+	}
+	if len(element.Options.ICECandidates) > 0 {
+		s.SetNAT1To1IPs(element.Options.ICECandidates, webrtc.ICECandidateTypeHost)
+		log.Println("Set ICECandidates", element.Options.ICECandidates)
 	}
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithInterceptorRegistry(i), webrtc.WithSettingEngine(s))
 	return api.NewPeerConnection(configuration)
@@ -216,12 +222,31 @@ func (element *Muxer) WritePacket(pkt av.Packet) (err error) {
 		}
 		switch tmp.codec.Type() {
 		case av.H264:
-			codec := tmp.codec.(h264parser.CodecData)
-			if pkt.IsKeyFrame {
-				pkt.Data = append([]byte{0, 0, 0, 1}, bytes.Join([][]byte{codec.SPS(), codec.PPS(), pkt.Data[4:]}, []byte{0, 0, 0, 1})...)
-			} else {
-				pkt.Data = pkt.Data[4:]
+			nalus, _ := h264parser.SplitNALUs(pkt.Data)
+			for _, nalu := range nalus {
+				naltype := nalu[0] & 0x1f
+				if naltype == 5 {
+					codec := tmp.codec.(h264parser.CodecData)
+					err = tmp.track.WriteSample(media.Sample{Data: append([]byte{0, 0, 0, 1}, bytes.Join([][]byte{codec.SPS(), codec.PPS(), nalu}, []byte{0, 0, 0, 1})...), Duration: pkt.Duration})
+
+				} else if naltype == 1 {
+					err = tmp.track.WriteSample(media.Sample{Data: append([]byte{0, 0, 0, 1}, nalu...), Duration: pkt.Duration})
+				}
+				if err != nil {
+					return err
+				}
 			}
+			WritePacketSuccess = true
+			return
+			/*
+
+				if pkt.IsKeyFrame {
+					pkt.Data = append([]byte{0, 0, 0, 1}, bytes.Join([][]byte{codec.SPS(), codec.PPS(), pkt.Data[4:]}, []byte{0, 0, 0, 1})...)
+				} else {
+					pkt.Data = pkt.Data[4:]
+				}
+
+			*/
 		case av.PCM_ALAW:
 		case av.OPUS:
 		case av.PCM_MULAW:

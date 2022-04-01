@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrParse         = errors.New("Parse error")
-	ErrUnexpectedEOF = errors.New("Unexpected EOF")
+	ErrParse         = errors.New("parse error")
+	ErrUnexpectedEOF = errors.New("unexpected EOF")
 )
 
 // InitDocument creates a MKV/WebM document containing the file data
@@ -40,9 +40,7 @@ func (doc *Document) ParseAll(c func(Element)) error {
 
 func (doc *Document) GetVideoCodec() (*Element, error) {
 	for {
-
 		el, err := doc.ParseElement()
-
 		if err != nil {
 			return nil, err
 		}
@@ -50,14 +48,13 @@ func (doc *Document) GetVideoCodec() (*Element, error) {
 		if el.ElementRegister.ID == ElementCodecPrivate.ID {
 			return &el, nil
 		}
-
 	}
 
 	return nil, errors.New("not found")
 }
 
 // ParseElement parses an EBML element starting at the document's current cursor position.
-// Because of its nature, it does not set the elements's parent or level.
+// Because of its nature, it does not set the elements parent or level.
 func (doc *Document) ParseElement() (Element, error) {
 	var el Element
 
